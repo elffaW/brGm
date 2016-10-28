@@ -5,20 +5,25 @@ import mkawa.okhttp.contactActivity.sendShitParams;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.PointF;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.view.View;
-import android.view.animation.BounceInterpolator;
+import android.view.ViewGroup;
 import android.view.animation.LinearInterpolator;
-import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.SeekBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.formatter.PercentFormatter;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -27,10 +32,10 @@ import com.hookedonplay.decoviewlib.charts.SeriesItem;
 import com.hookedonplay.decoviewlib.events.DecoEvent;
 import com.vstechlab.easyfonts.EasyFonts;
 
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -43,10 +48,10 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class TradeShare extends Activity {
+public class TradeShare extends Activity
+{
 
-    public static final MediaType FORM_DATA_TYPE
-            = MediaType.parse("application/x-www-form-urlencoded; charset=utf-8");
+    public static final MediaType FORM_DATA_TYPE = MediaType.parse("application/x-www-form-urlencoded; charset=utf-8");
 
     //input element ids found from the live form page
     public static final String NAME_KEY="entry.468624322";
@@ -56,25 +61,23 @@ public class TradeShare extends Activity {
     public static final String ABV_POINT_KEY="entry.1922509005";
     public static final String IBU_POINT_KEY="entry.444340806";
     public static final String TEAM_KEY = "entry.2118900696";
+    public static final String NTOKEN_KEY = "entry.1190458816";
 
     protected static String clickToken = "";
     protected static float clickVal;
-    protected static String URL = "https://docs.google.com/forms/d/1xVzwPQyQdasuy2wSjJnQ1v6Vn9o_I9czcCHN42-9qYc/formResponse";
-    protected static String playerName = "";
-    protected static String playerTeam = "";
-    protected static int pointSelection = 0;
+    public static String URL = "https://docs.google.com/forms/d/1xVzwPQyQdasuy2wSjJnQ1v6Vn9o_I9czcCHN42-9qYc/formResponse";
+    public static String playerName = "";
+    public static String playerTeam = "";
     protected static String drinkPointsAdd;
     protected static String ozPointsAdd;
     protected static String abvPointsAdd;
     protected static String ibuPointsAdd;
-    protected static int genPointsAdd = 0;
     protected static float keepStock = 0;
-    protected static int shares = 0;
+    protected static float shares = 0;
     protected static int drinkPoints;
     protected static int ozPoints;
     protected static int abvPoints;
     protected static int ibuPoints;
-    protected static PlayerStats player;
     protected static float playerDrinkPoints;
     protected static float playerOzPoints;
     protected static float playerAbvPoints;
@@ -83,34 +86,29 @@ public class TradeShare extends Activity {
     protected static float defaultOzPoints;
     protected static float defaultAbvPoints;
     protected static float defaultIbuPoints;
+    protected static int nInstances;
+    protected static float teamDrinkPct;
+    protected static float teamOzPct;
+    protected static float teamAbvPct;
+    protected static float teamIbuPct;
 
 
-    private SeekBar seekBar;
+
     private Button tradeButton;
     private TextView stockLeft;
     private TextView drinkCounter;
     private TextView ozCounter;
     private TextView abvCounter;
     private TextView ibuCounter;
-    private TextView pointsText;
     private DecoView tokenDeco;
-    private DecoView pointDeco;
-    private SeriesItem stockSeries;
-    private SeriesItem drinkSeries;
-    private SeriesItem ozSeries;
-    private SeriesItem abvSeries;
-    private SeriesItem ibuSeries;
-    private int drinkSeriesIndex;
-    private int ounceSeriesIndex;
-    private int abvSeriesIndex;
-    private int ibuSeriesIndex;
     private int stockSeriesIndex;
     private float maxCatPoints = 0;
     private int maxPoints;
     private double maxMarketVal;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_trade_share);
 
@@ -134,7 +132,8 @@ public class TradeShare extends Activity {
         //retrieve information from beerSearch.java
         Bundle extras = getIntent().getExtras();
 
-        if (extras != null) {
+        if (extras != null)
+        {
             clickToken = extras.getString("tokenType").replaceAll("\"", "");
             clickVal = extras.getFloat("curVal");
         }
@@ -147,110 +146,41 @@ public class TradeShare extends Activity {
 
         long nTokens = TokenPurse.count(TokenPurse.class,null,null);
         tokens = TokenPurse.listAll(TokenPurse.class);
-        for (int i = 0; i < nTokens; i++){
-            if(tokens.get(i).tokenName.equals(clickToken)){
-                shares =  (int)(tokens.get(i).tokenShare);
+        for (int i = 0; i < nTokens; i++)
+        {
+            if(tokens.get(i).tokenName.equals(clickToken))
+            {
+                shares =  (tokens.get(i).tokenShare);
                 break;
             }
         }
-
-        //set values
 
         //determine max number of points player can get
         maxMarketVal = shares * clickVal;
         maxPoints = (int)Math.floor(shares * clickVal);
         keepStock = (float)Math.floor((maxMarketVal / clickVal)*10)/10;
 
-        /*
-        seekBar.setMax(maxPoints);
 
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            int progress = maxPoints;
-
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progressValue, boolean b) {
-                progress = progressValue;
-                genPointsAdd = progress;
-                keepStock = (float)Math.floor(((maxMarketVal - progress) / clickVal)*10)/10;
-
-                String plPt = " PT";
-                if (progress>1){
-                    plPt = " PTS";
-                }
-                pointsText.setText("PURCHASE " + progress + plPt);
-
-                if(progress>= 1){
-                    tradeButton.setClickable(true);
-                    int executeButton = getResources().getIdentifier("roundedbutton", "drawable", getPackageName());
-                    tradeButton.setBackgroundResource(executeButton);
-                } else {
-                    tradeButton.setClickable(false);
-                    tradeButton.setBackgroundResource(button);
-                }
-
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                genPointsAdd = progress;
-                keepStock = (float)Math.floor(((maxMarketVal - progress) / clickVal)*100)/10;
-
-                String plPt = " PT";
-                if (progress>1){
-                    plPt = " PTS";
-                }
-                pointsText.setText("PURCHASE " + progress + plPt);
-
-                if(progress>= 1){
-                    tradeButton.setClickable(true);
-                    int executeButton = getResources().getIdentifier("roundedbutton", "drawable", getPackageName());
-                    tradeButton.setBackgroundResource(executeButton);
-                } else {
-                    tradeButton.setClickable(false);
-                    tradeButton.setBackgroundResource(button);
-                }
-            }
-        });
-        */
-
+        System.out.println(shares);
         tokenArc();
-        try {
+        try
+        {
             callUserStats(playerName);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             e.printStackTrace();
         }
-        System.out.println("maxPoints = " + maxPoints);
-        //pointsArc();
-
 
     } //END ON CREATE
 
-    public void executeTrade (View v){
+    public void executeTrade (View v)
+    {
         //code here to submit token shares
-        //determine which entry to send based on which radio is selected
-
-        drinkPointsAdd = "0";
-        ozPointsAdd = "0";
-        abvPointsAdd = "0";
-        ibuPointsAdd = "0";
-
-        if (pointSelection == 0){
-            //send to drink point category
-            drinkPointsAdd = String.valueOf(genPointsAdd);
-        } else if (pointSelection == 1 ){
-            //send to oz point category
-            ozPointsAdd = String.valueOf(genPointsAdd);
-        } else if (pointSelection == 2){
-            //send to abv point category
-            abvPointsAdd = String.valueOf(genPointsAdd);
-        } else {
-            //send tp ibu point category
-            ibuPointsAdd = String.valueOf(genPointsAdd);
-        }
+        drinkPointsAdd = drinkCounter.getText().toString();
+        ozPointsAdd = ozCounter.getText().toString();
+        abvPointsAdd = abvCounter.getText().toString();
+        ibuPointsAdd = ibuCounter.getText().toString();
 
         //Create an object for PostDataTask AsyncTask
         contactActivity.sendShitParams params = new contactActivity().new sendShitParams(true,
@@ -278,10 +208,12 @@ public class TradeShare extends Activity {
 
 
     //AsyncTask to send data as a http POST request
-    private class PostDataTask extends AsyncTask<sendShitParams, Void, Boolean> {
+    private class PostDataTask extends AsyncTask<sendShitParams, Void, Boolean>
+    {
 
         @Override
-        protected Boolean doInBackground(sendShitParams... params) {
+        protected Boolean doInBackground(sendShitParams... params)
+        {
             Boolean result = params[0].test;
             String name = params[0].playerName;
             String postBody="";
@@ -291,27 +223,31 @@ public class TradeShare extends Activity {
             String ozP = params[0].ozPoints;
             String abvP = params[0].abvPoints;
             String ibuP = params[0].ibuPoints;
-            float keepStock = params[0].keepStock;
             String team = params[0].teamName;
 
+            int nTokens = Integer.valueOf(drinkP) + Integer.valueOf(ozP) + Integer.valueOf(abvP) + Integer.valueOf(ibuP);
 
-            try {
+            try
+            {
                 //all values must be URL encoded to make sure that special characters like & | ",etc.
                 //do not cause problems
                 postBody = NAME_KEY+"=" + URLEncoder.encode(name,"UTF-8") +
                         "&" + TOKEN_KEY + "=" + URLEncoder.encode(tradeToken,"UTF-8") +
-                        "&" + DRINK_POINT_KEY + "=" + URLEncoder.encode(drinkP,"UTF-8") +
-                        "&" + OZ_POINT_KEY + "=" + URLEncoder.encode(ozP,"UTF-8") +
-                        "&" + ABV_POINT_KEY + "=" + URLEncoder.encode(abvP,"UTF-8") +
-                        "&" + IBU_POINT_KEY + "=" + URLEncoder.encode(ibuP,"UTF-8") +
-                        "&" + TEAM_KEY + "=" + URLEncoder.encode(team,"UTF-8");
-            } catch (UnsupportedEncodingException ex) {
+                        //"&" + DRINK_POINT_KEY + "=" + URLEncoder.encode(drinkP,"UTF-8") +
+                        //"&" + OZ_POINT_KEY + "=" + URLEncoder.encode(ozP,"UTF-8") +
+                        //"&" + ABV_POINT_KEY + "=" + URLEncoder.encode(abvP,"UTF-8") +
+                        //"&" + IBU_POINT_KEY + "=" + URLEncoder.encode(ibuP,"UTF-8") +
+                        "&" + TEAM_KEY + "=" + URLEncoder.encode(team,"UTF-8") +
+                        "&" + NTOKEN_KEY + "=" + URLEncoder.encode(String.valueOf(nTokens),"UTF-8");
 
+            }
+            catch (UnsupportedEncodingException ex)
+            {
                 result = false;
             }
 
-
-            try{
+            try
+            {
                 //Create OkHttpClient for sending request
                 OkHttpClient client = new OkHttpClient();
                 //Create the request body with the help of Media Type
@@ -322,63 +258,81 @@ public class TradeShare extends Activity {
                         .build();
                 //Send the request
                 Response response = client.newCall(request).execute();
-            }catch (IOException exception){
+            }
+            catch (IOException exception)
+            {
                 result = false;
             }
             return result;
         }
 
         @Override
-        protected void onPostExecute(Boolean w){
+        protected void onPostExecute(Boolean w)
+        {
             //Print Success or failure message accordingly
             final Boolean test = w;
 
-
-            runOnUiThread(new Runnable() {
+            runOnUiThread(new Runnable()
+            {
                 @Override
-                public void run() {
+                public void run()
+                {
                     Toast.makeText(getApplicationContext(),test?"Trade Executed":"There was some error in sending message. Please try again after some time.",Toast.LENGTH_LONG).show();
 
                     List<TokenPurse> tokens;
                     long nTokens = TokenPurse.count(TokenPurse.class,null,null);
                     tokens = TokenPurse.listAll(TokenPurse.class);
-                    for (int i = 0; i < nTokens; i++){
-                        if(tokens.get(i).tokenName.equals(clickToken)){
+                    for (int i = 0; i < nTokens; i++)
+                    {
+                        if(tokens.get(i).tokenName.equals(clickToken))
+                        {
                             tokens.get(i).tokenShare = keepStock;
                             tokens.get(i).save();
                             break;
                         }
                     }
 
-                    Intent allDone = new Intent(getApplicationContext(), LeaderBoard.class);
+                    Intent allDone = new Intent(getApplicationContext(), Drop.class);
+
+                    setNumInstances(Integer.valueOf(drinkPointsAdd),Integer.valueOf(ozPointsAdd), Integer.valueOf(abvPointsAdd), Integer.valueOf(ibuPointsAdd));
+
                     startActivity(allDone);
+                    finish();
                 }
             });
         }
     }
 
-    private void initializeVariables() {
+    private void initializeVariables()
+    {
         tradeButton = (Button) findViewById(R.id.tradeButton);
         drinkCounter = (TextView) findViewById(R.id.drinkCounter);
         ozCounter = (TextView) findViewById(R.id.ozCounter);
         abvCounter = (TextView) findViewById(R.id.abvCounter);
         ibuCounter = (TextView) findViewById(R.id.ibuCounter);
         stockLeft = (TextView) findViewById(R.id.stockLeft);
+        TextView stockLeftTV = (TextView) findViewById(R.id.stockLeftTV);
+        TextView headerView = (TextView) findViewById(R.id.tradeheader);
 
         tokenDeco = (DecoView) findViewById(R.id.dynamicArcChart);
-        pointDeco = (DecoView) findViewById(R.id.pointArcChart);
 
         drinkCounter.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
         ozCounter.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
         abvCounter.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
         ibuCounter.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        stockLeft.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        stockLeftTV.setTypeface(EasyFonts.ostrichRegular(getApplicationContext()));
+        headerView.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+
+
         drinkCounter.setText("0");
         ozCounter.setText("0");
         abvCounter.setText("0");
         ibuCounter.setText("0");
     }
 
-    public void resetVal(View v) {
+    public void resetVal(View v)
+    {
         playerDrinkPoints = defaultDrinkPoints;
         playerOzPoints = defaultOzPoints;
         playerAbvPoints = defaultAbvPoints;
@@ -399,18 +353,17 @@ public class TradeShare extends Activity {
         ibuCounter.setText("0");
 
         tokenDeco.addEvent(new DecoEvent.Builder(shares).setIndex(stockSeriesIndex).build());
-        pointDeco.addEvent(new DecoEvent.Builder(playerDrinkPoints).setIndex(drinkSeriesIndex).build());
-        pointDeco.addEvent(new DecoEvent.Builder(playerOzPoints).setIndex(ounceSeriesIndex).build());
-        pointDeco.addEvent(new DecoEvent.Builder(playerAbvPoints).setIndex(abvSeriesIndex).build());
-        pointDeco.addEvent(new DecoEvent.Builder(playerIbuPoints).setIndex(ibuSeriesIndex).build());
     }
 
-    public void increaseVal(View v) {
-
-        if(keepStock * clickVal >= 1){
-            switch (v.getId()){
+    public void increaseVal(View v)
+    {
+        if(keepStock * clickVal >= 1)
+        {
+            switch (v.getId())
+            {
                 case R.id.drinkClick:
-                    if (playerDrinkPoints < maxCatPoints){
+                    if (playerDrinkPoints < maxCatPoints)
+                    {
                         drinkCounter.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.Goldenrod));
                         drinkPoints = Integer.valueOf(drinkCounter.getText().toString().replaceAll("\"", "")) + 1;
                         drinkCounter.setText(String.valueOf(drinkPoints));
@@ -419,7 +372,8 @@ public class TradeShare extends Activity {
                     }
                     break;
                 case R.id.ozClick:
-                    if (playerOzPoints < maxCatPoints) {
+                    if (playerOzPoints < maxCatPoints)
+                    {
                         ozCounter.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.Goldenrod));
                         ozPoints = Integer.valueOf(ozCounter.getText().toString().replaceAll("\"", "")) + 1;
                         playerOzPoints = playerOzPoints + 1;
@@ -428,7 +382,8 @@ public class TradeShare extends Activity {
                     }
                     break;
                 case R.id.abvClick:
-                    if (playerAbvPoints < maxCatPoints) {
+                    if (playerAbvPoints < maxCatPoints)
+                    {
                         abvCounter.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.Goldenrod));
                         abvPoints = Integer.valueOf(abvCounter.getText().toString().replaceAll("\"", "")) + 1;
                         playerAbvPoints = playerAbvPoints + 1;
@@ -448,27 +403,22 @@ public class TradeShare extends Activity {
             }
 
             tokenDeco.addEvent(new DecoEvent.Builder(keepStock).setIndex(stockSeriesIndex).build());
-            pointDeco.addEvent(new DecoEvent.Builder(playerDrinkPoints).setIndex(drinkSeriesIndex).build());
-            pointDeco.addEvent(new DecoEvent.Builder(playerOzPoints).setIndex(ounceSeriesIndex).build());
-            pointDeco.addEvent(new DecoEvent.Builder(playerAbvPoints).setIndex(abvSeriesIndex).build());
-            pointDeco.addEvent(new DecoEvent.Builder(playerIbuPoints).setIndex(ibuSeriesIndex).build());
 
             tradeButton.setClickable(true);
-
         }
     }
 
-
-
-    private void tokenArc(){
-        // Create background track
+    private void tokenArc()
+    {
+        // CREATE BACKGROUND TRACK
         tokenDeco.addSeries(new SeriesItem.Builder(ContextCompat.getColor(getApplicationContext(),R.color.SlateGray))
                 .setRange(0, shares, shares)
                 .setInitialVisibility(false)
                 .setLineWidth(32f)
                 .build());
 
-        //Create data series track
+        //CREATE DATA SERIES TRACK
+        SeriesItem stockSeries;
         stockSeries = new SeriesItem.Builder(ContextCompat.getColor(getApplicationContext(),R.color.Yellow))
                 .setRange(0, shares, 0)
                 .setLineWidth(32f)
@@ -485,94 +435,101 @@ public class TradeShare extends Activity {
 
         tokenDeco.addEvent(new DecoEvent.Builder(shares).setIndex(stockSeriesIndex).setDelay(500).build());
 
-        //set token listener
-        stockSeries.addArcSeriesItemListener(new SeriesItem.SeriesItemListener() {
+        //SET TOKEN LISTENER
+        stockSeries.addArcSeriesItemListener(new SeriesItem.SeriesItemListener()
+        {
             @Override
-            public void onSeriesItemAnimationProgress(float percentComplete, float currentPosition) {
+            public void onSeriesItemAnimationProgress(float percentComplete, float currentPosition)
+            {
                 stockLeft.setText((String.format(Locale.getDefault(),"%.1f",currentPosition)));
             }
 
             @Override
-            public void onSeriesItemDisplayProgress(float percentComplete) {
-
+            public void onSeriesItemDisplayProgress(float percentComplete)
+            {
             }
         });
-
     }
 
-    private void pointsArc(){
+    public void printSomeBar(float drinkPct, float ozPct, float abvPct, float ibuPct)
+    {
+        //ADD VALUES TO CHART
+        ArrayList<BarEntry> entries = new ArrayList<>();
+        entries.add(new BarEntry(1,drinkPct*100));
+        entries.add(new BarEntry(2,ozPct*100));
+        entries.add(new BarEntry(3,abvPct*100));
+        entries.add(new BarEntry(4,ibuPct*100));
 
-        // Create background track
-        pointDeco.addSeries(new SeriesItem.Builder(ContextCompat.getColor(getApplicationContext(),R.color.SlateGray))
-                .setRange(0, maxCatPoints, maxCatPoints)
-                .setInitialVisibility(false)
-                .setCapRounded(false)
-                .setLineWidth(128f)
-                .setInset(new PointF(48f,48f))
-                .build());
+        //CREATE DATASET
+        BarDataSet dataSet = new BarDataSet(entries,"points");
 
-        pointDeco.configureAngles(180,270);
+        int[] colors = new int[4];
+        colors[0] = ContextCompat.getColor(getApplicationContext(),R.color.GoldSpades);
+        colors[1] = ContextCompat.getColor(getApplicationContext(),R.color.BlueDiamonds);
+        colors[2] = ContextCompat.getColor(getApplicationContext(),R.color.BlackHearts);
+        colors[3] = ContextCompat.getColor(getApplicationContext(),R.color.CreamClubs);
 
-        //Create Drink data series track
-        drinkSeries = new SeriesItem.Builder(ContextCompat.getColor(getApplicationContext(),R.color.Yellow))
-                .setRange(0, maxCatPoints, 0)
-                .setLineWidth(32f)
-                .setSpinDuration(5000)
-                .setCapRounded(false)
-                .setInterpolator(new BounceInterpolator())
-                .setInitialVisibility(false)
-                .build();
-        //Create Ounce data series track
-        ozSeries = new SeriesItem.Builder(ContextCompat.getColor(getApplicationContext(),R.color.Blue))
-                .setRange(0, maxCatPoints, 0)
-                .setLineWidth(32f)
-                .setSpinDuration(5000)
-                .setCapRounded(false)
-                .setInterpolator(new BounceInterpolator())
-                .setInitialVisibility(false)
-                .setInset(new PointF(32f,32f))
-                .build();
-        //Create Abv data series track
-        abvSeries = new SeriesItem.Builder(ContextCompat.getColor(getApplicationContext(),R.color.Black))
-                .setRange(0, maxCatPoints, 0)
-                .setLineWidth(32f)
-                .setSpinDuration(5000)
-                .setCapRounded(false)
-                .setInterpolator(new BounceInterpolator())
-                .setInitialVisibility(false)
-                .setInset(new PointF(64f,64f))
-                .build();
-        //Create Ounce data series track
-        ibuSeries = new SeriesItem.Builder(ContextCompat.getColor(getApplicationContext(),R.color.NavajoWhite))
-                .setRange(0, maxCatPoints, 0)
-                .setLineWidth(32f)
-                .setSpinDuration(5000)
-                .setCapRounded(false)
-                .setInterpolator(new BounceInterpolator())
-                .setInitialVisibility(false)
-                .setInset(new PointF(96f,96f))
-                .build();
+        dataSet.setColors(colors);
 
-        drinkSeriesIndex = pointDeco.addSeries(drinkSeries);
-        ounceSeriesIndex = pointDeco.addSeries(ozSeries);
-        abvSeriesIndex = pointDeco.addSeries(abvSeries);
-        ibuSeriesIndex = pointDeco.addSeries(ibuSeries);
+        BarChart pointsLeaderBoard = new BarChart(getApplicationContext());
 
-        pointDeco.addEvent(new DecoEvent.Builder(DecoEvent.EventType.EVENT_SHOW, true)
-                .setDelay(500)
-                .setDuration(500)
-                .build());
+        BarData data = new BarData(dataSet);
+        data.setValueFormatter(new PercentFormatter(new DecimalFormat("###")));
+        data.setValueTypeface(EasyFonts.ostrichRegular(getApplicationContext()));
+        data.setValueTextColor(ContextCompat.getColor(getApplicationContext(), R.color.WhiteSmoke));
+        data.setBarWidth(0.75f); // set the width of each bar
+        data.setValueTextSize(8f);
 
-        pointDeco.addEvent(new DecoEvent.Builder(playerDrinkPoints).setIndex(drinkSeriesIndex).setDelay(1250).build());
-        pointDeco.addEvent(new DecoEvent.Builder(playerOzPoints).setIndex(ounceSeriesIndex).setDelay(1000).build());
-        pointDeco.addEvent(new DecoEvent.Builder(playerAbvPoints).setIndex(abvSeriesIndex).setDelay(750).build());
-        pointDeco.addEvent(new DecoEvent.Builder(playerIbuPoints).setIndex(ibuSeriesIndex).setDelay(500).build());
+        pointsLeaderBoard.setData(data);
+        pointsLeaderBoard.setFitBars(false);
+        pointsLeaderBoard.animateY(1000);
+        pointsLeaderBoard.setDescription("");
+        pointsLeaderBoard.setDescriptionColor(ContextCompat.getColor(getApplicationContext(), R.color.GhostWhite));
+        pointsLeaderBoard.setDescriptionTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        pointsLeaderBoard.setDescriptionTextSize(25f);
+        pointsLeaderBoard.getXAxis().setDrawGridLines(false);
+        pointsLeaderBoard.getAxisRight().setEnabled(false);
+        pointsLeaderBoard.invalidate(); // refresh
 
+        XAxis xAxis = pointsLeaderBoard.getXAxis();
+        xAxis.setTextColor(ContextCompat.getColor(getApplicationContext(), R.color.GhostWhite));
+        xAxis.setDrawAxisLine(true);
+        xAxis.setGranularity(1f);
+        xAxis.setAxisMinValue(0f);
+        xAxis.setAxisMaxValue(5f);
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        xAxis.setDrawLabels(false);
+        xAxis.setLabelCount(4, true);
+        xAxis.setTextSize(10f);
+        xAxis.setLabelRotationAngle(-90);
+
+
+        YAxis yAxis = pointsLeaderBoard.getAxisLeft();
+        yAxis.setDrawAxisLine(false);
+        yAxis.setTextColor(ContextCompat.getColor(getApplicationContext(), R.color.Goldenrod));
+        yAxis.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        yAxis.setAxisMinValue(0);
+        yAxis.setAxisMaxValue(110f);
+        yAxis.setTextSize(15f);
+        yAxis.setGranularity(1f);
+        yAxis.setGridColor(ContextCompat.getColor(getApplicationContext(), R.color.DarkGoldenrod));
+        yAxis.setValueFormatter(new PercentFormatter(new DecimalFormat("###")));
+
+        //define layout parameters for charts
+        RelativeLayout.LayoutParams primaryChartParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+        //define layout for chart to be applied and apply
+        RelativeLayout primary = (RelativeLayout) findViewById(R.id.pointContainer);
+        primary.removeAllViews();
+        primary.addView(pointsLeaderBoard,primaryChartParams);
+        pointsLeaderBoard.invalidate(); // refresh
     }
+
 
     public void callUserStats(final String userName) throws Exception {
         Request request = new Request.Builder()
-                .url("https://spreadsheets.google.com/feeds/list/1K9xB3ZivGYa5S-1SdyEWNUUNN8tu1-9_NH-xyA9if-8/2/public/full?alt=json")
+                .url("https://spreadsheets.google.com/feeds/list/1K9xB3ZivGYa5S-1SdyEWNUUNN8tu1-9_NH-xyA9if-8/5/public/full?alt=json")
                 .build();
 
         //Set up Web Client for data source
@@ -608,7 +565,7 @@ public class TradeShare extends Activity {
                     PlayerGroup group = new PlayerGroup();
 
                     //Player Name Fill Container
-                    JsonElement nameField = sheetsResponse.getAsJsonObject().get("gsx$name").getAsJsonObject().get("$t");
+                    JsonElement nameField = sheetsResponse.getAsJsonObject().get("gsx$team").getAsJsonObject().get("$t");
                     group.player = nameField.toString().replaceAll("\"", "");
 
                     //Ounces Fill Container
@@ -648,36 +605,48 @@ public class TradeShare extends Activity {
 
                 }
                 //extract user info out of container
-                final PlayerStats user = new PlayerStats();
+                final TeamStats team = new TeamStats();
                 for (int i = 0; i < sortCont.size(); i++) {
-                    if (sortCont.get(i).player.equals(userName.toUpperCase())) {
-                        user.setDrinks(sortCont.get(i).drinks);
-                        user.setOz(sortCont.get(i).oz);
-                        user.setAbv(sortCont.get(i).abv);
-                        user.setIbu(sortCont.get(i).ibu);
-                        user.setDrinkTokens(sortCont.get(i).drinkPts);
-                        user.setOzTokens(sortCont.get(i).ozPts);
-                        user.setAbvTokens(sortCont.get(i).abvPts);
-                        user.setIbuTokens(sortCont.get(i).ibuPts);
+                    if (sortCont.get(i).player.equals(playerTeam.toUpperCase())) {
+                        team.setTeamDrinks(sortCont.get(i).drinks);
+                        team.setTeamOz(sortCont.get(i).oz);
+                        team.setTeamAbv(sortCont.get(i).abv);
+                        team.setTeamIbu(sortCont.get(i).ibu);
+                        team.setTeamDrinkTokens(sortCont.get(i).drinkPts);
+                        team.setTeamOzTokens(sortCont.get(i).ozPts);
+                        team.setTeamAbvTokens(sortCont.get(i).abvPts);
+                        team.setTeamIbuTokens(sortCont.get(i).ibuPts);
                     }
                 }
 
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        playerDrinkPoints = user.getDrinkPts();
-                        playerOzPoints = user.getOzPts();
-                        playerAbvPoints = user.getAbvPts();
-                        playerIbuPoints = user.getIbuPts();
-                        defaultDrinkPoints = user.getDrinkPts();
-                        defaultOzPoints = user.getOzPts();
-                        defaultAbvPoints = user.getAbvPts();
-                        defaultIbuPoints = user.getIbuPts();
-                        pointsArc();
+                        FetchSettings settings = FetchSettings.findById(FetchSettings.class,1);
+                        float catgPoints = settings.catgPoints;
+                        teamDrinkPct = team.getTeamDrinkPoints()/catgPoints;
+                        teamOzPct = team.getTeamOzPoints()/catgPoints;
+                        teamAbvPct = team.getTeamAbvPoints()/catgPoints;
+                        teamIbuPct = team.getTeamIbuPoints()/catgPoints;
+                        printSomeBar(teamDrinkPct, teamOzPct, teamAbvPct, teamIbuPct);
+
                     }
                 });
 
             }
         });
     }
+
+    public static void setNumInstances(int d, int o, int a, int i)
+    {
+        nInstances = d + o + a + i;
+    }
+    public static int getNumInstances()
+    {
+        return nInstances;
+    }
+    public static int getDrinkTokens() { return Integer.valueOf(drinkPointsAdd);}
+    public static int getOzTokens() { return Integer.valueOf(ozPointsAdd);}
+    public static int getAbvTokens() { return Integer.valueOf(abvPointsAdd);}
+    public static int getIbuTokens() { return Integer.valueOf(ibuPointsAdd);}
 }

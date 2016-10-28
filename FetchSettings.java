@@ -1,6 +1,5 @@
 package mkawa.okhttp;
 
-import android.app.Application;
 
 
 import com.google.gson.JsonArray;
@@ -16,9 +15,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-/**
- * Created by mattkawahara on 8/24/16.
- */
+
 public class FetchSettings extends SugarRecord {
 
     Float drinkLevel;
@@ -26,16 +23,42 @@ public class FetchSettings extends SugarRecord {
     Float abvLevel;
     Float ibuLevel;
     Float catgPoints;
+    Float maxStockVal;
+    Float nTokens;
 
     public FetchSettings() {
     }
 
-    public FetchSettings(float drinkLevel, float ozLevel, float abvLevel, float ibuLevel, float catgPoints){
+    public FetchSettings(float drinkLevel, float ozLevel, float abvLevel, float ibuLevel, float catgPoints, float maxStockVal, float nTokens){
         this.drinkLevel = drinkLevel;
         this.ozLevel = ozLevel;
         this.abvLevel = abvLevel;
         this.ibuLevel = ibuLevel;
         this.catgPoints = catgPoints;
+        this.maxStockVal = maxStockVal;
+        this.nTokens = nTokens;
+    }
+
+    public void clearSettings(){
+        FetchSettings settings = FetchSettings.findById(FetchSettings.class,1);
+        settings.delete();
+    }
+
+    public void updateSettings(float uDrinkLevel, float uOzLevel, float uAbvLevel, float uIbuLevel, float uCatgPoints, float uMaxStockVal, float uNTokens){
+        FetchSettings settings = FetchSettings.findById(FetchSettings.class,1);
+        settings.drinkLevel = uDrinkLevel;
+        settings.ozLevel = uOzLevel;
+        settings.abvLevel = uAbvLevel;
+        settings.ibuLevel = uIbuLevel;
+        settings.catgPoints = uCatgPoints;
+        settings.maxStockVal = uMaxStockVal;
+        settings.nTokens = uNTokens;
+        settings.save();
+    }
+
+    public void createNewDatabase(float drinkLevel, float ozLevel, float abvLevel, float ibuLevel, float catgPoints, float maxStockVal, float nTokens){
+        FetchSettings settings = new FetchSettings(drinkLevel, ozLevel, abvLevel, ibuLevel, catgPoints, maxStockVal, nTokens);
+        settings.save();
     }
 
 
@@ -76,6 +99,8 @@ public class FetchSettings extends SugarRecord {
                  float abvLvl = 0;
                  float ibuLvl = 0;
                  float catPoints = 0;
+                 float maxStockVal = 0;
+                 float nTokens = 0;
 
                 //Iterate to get all results and fill ArrayList Containers at "data" level
                 for (JsonElement sheetsResponse : elemArr) {
@@ -100,11 +125,22 @@ public class FetchSettings extends SugarRecord {
                     JsonElement catPoint = sheetsResponse.getAsJsonObject().get("gsx$catpoints").getAsJsonObject().get("$t");
                     catPoints = catPoint.getAsFloat();
 
+                    //maxStockVal  setting
+                    JsonElement maxStock = sheetsResponse.getAsJsonObject().get("gsx$msv").getAsJsonObject().get("$t");
+                    maxStockVal = maxStock.getAsFloat();
+
+                    //nTokens  setting
+                    JsonElement numTokens = sheetsResponse.getAsJsonObject().get("gsx$ntokentypes").getAsJsonObject().get("$t");
+                    nTokens = numTokens.getAsFloat();
                 }
 
-                FetchSettings settings = new FetchSettings(drinkLvl, ozLvl, abvLvl, ibuLvl, catPoints);
-                settings.save();
 
+                if (FetchSettings.findById(FetchSettings.class,1) == null){
+                    createNewDatabase(drinkLvl,ozLvl,abvLvl,ibuLvl,catPoints,maxStockVal,nTokens);
+                } else {
+                    updateSettings(drinkLvl,ozLvl,abvLvl,ibuLvl,catPoints,maxStockVal,nTokens);
+                    System.out.println("see if printed");
+                }
 
             }
         });

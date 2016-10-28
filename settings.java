@@ -1,5 +1,6 @@
 package mkawa.okhttp;
 
+import android.app.Activity;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
@@ -12,8 +13,10 @@ import android.widget.Toast;
 
 import com.vstechlab.easyfonts.EasyFonts;
 
+import org.andengine.entity.text.Text;
 
-public class settings extends contactActivity {
+
+public class settings extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,8 +27,33 @@ public class settings extends contactActivity {
         EditText userNameEntry = (EditText)findViewById(R.id.userName);
         title.setTextColor(ContextCompat.getColor(getApplicationContext(), R.color.GhostWhite));
         userNameEntry.setTextColor(ContextCompat.getColor(getApplicationContext(), R.color.GhostWhite));
-        title.setTypeface(EasyFonts.ostrichLight(getApplicationContext()));
+        title.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
         userNameEntry.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+
+        TextView drinkPerPointTitle = (TextView) findViewById(R.id.drinkPerPointTitle);
+        TextView ozPerPointTitle = (TextView) findViewById(R.id.ozPerPointTitle);
+        TextView abvPerPointTitle = (TextView) findViewById(R.id.abvOzPerPointTitle);
+        TextView ibuPerPointTitle = (TextView) findViewById(R.id.ibuPerPointTitle);
+        TextView drinkPerPointValue = (TextView) findViewById(R.id.drinkPerPointValue);
+        TextView ozPerPointValue = (TextView) findViewById(R.id.ozPerPointValue);
+        TextView abvPerPointValue = (TextView) findViewById(R.id.abvOzPerPointValue);
+        TextView ibuPerPointValue = (TextView) findViewById(R.id.ibuPerPointValue);
+
+        drinkPerPointTitle.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        ozPerPointTitle.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        abvPerPointTitle.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        ibuPerPointTitle.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        drinkPerPointValue.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        ozPerPointValue.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        abvPerPointValue.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        ibuPerPointValue.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+
+        FetchSettings settings = FetchSettings.findById(FetchSettings.class,1);
+
+        drinkPerPointValue.setText(String.valueOf(settings.drinkLevel));
+        ozPerPointValue.setText(String.valueOf(settings.ozLevel));
+        abvPerPointValue.setText(String.valueOf(settings.abvLevel));
+        ibuPerPointValue.setText(String.valueOf(settings.ibuLevel));
 
         }
 

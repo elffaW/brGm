@@ -3,9 +3,14 @@ package mkawa.okhttp;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.PointF;
 import android.os.Bundle;
+import android.support.annotation.FloatRange;
 import android.support.v4.content.ContextCompat;
+import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridLayout;
@@ -25,15 +30,22 @@ import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.formatter.AxisValueFormatter;
 import com.github.mikephil.charting.utils.ColorTemplate;
+import com.github.mikephil.charting.utils.ObjectPool;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.hookedonplay.decoviewlib.DecoView;
+import com.hookedonplay.decoviewlib.charts.SeriesItem;
+import com.hookedonplay.decoviewlib.events.DecoEvent;
 import com.vstechlab.easyfonts.EasyFonts;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -41,35 +53,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class UserStatstics extends baseActivity {
-    private TextView dPtsTV;
-    private TextView ozPtsTV;
-    private TextView abvPtsTV;
-    private TextView ibuPtsTV;
-    private TextView header;
-    private GridLayout statsGrid;
-
-    private TextView header1;
-    private TextView header2;
-    private TextView header3;
-    private TextView header4;
-    private TextView r1c1;
-    private TextView r1c2;
-    private TextView r1c3;
-    private TextView r1c4;
-    private TextView r2c1;
-    private TextView r2c2;
-    private TextView r2c3;
-    private TextView r2c4;
-    private TextView r3c1;
-    private TextView r3c2;
-    private TextView r3c3;
-    private TextView r3c4;
-    private TextView r4c1;
-    private TextView r4c2;
-    private TextView r4c3;
-    private TextView r4c4;
-
+public class UserStatstics extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,18 +64,20 @@ public class UserStatstics extends baseActivity {
         final String playerUserName = sharedPreferences.getString("USERNAME","");
         final String query = "https://spreadsheets.google.com/feeds/list/1K9xB3ZivGYa5S-1SdyEWNUUNN8tu1-9_NH-xyA9if-8/2/public/full?alt=json";
 
-        initializeVariables();
-
         //Method for retrieving Data on worker thread
-        try {
+        try
+        {
             requestUserStats(query, playerUserName);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             e.printStackTrace();
         }
 
     }//END ON CREATE
 
-    void requestUserStats(String url, final String userName) throws Exception{
+    void requestUserStats(String url, final String userName) throws Exception
+    {
         Request request = new Request.Builder()
                 .url(url)
                 .build();
@@ -99,20 +85,20 @@ public class UserStatstics extends baseActivity {
         //Set up Web Client for data source
         OkHttpClient client = new OkHttpClient();
 
-        client.newCall(request).enqueue(new Callback() {
+        client.newCall(request).enqueue(new Callback()
+        {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
-
+            public void onResponse(Call call, Response response) throws IOException
+            {
                 if (!response.isSuccessful()) throw new IOException("unexpected code " + response);
 
                 //get Web response and store into variable
                 final String responseData = response.body().string();
-
 
                 //Parse JSON
                 JsonParser jsonParser = new JsonParser();
@@ -125,8 +111,8 @@ public class UserStatstics extends baseActivity {
                 final ArrayList<PlayerGroup> sortCont = new ArrayList<>();
 
                 //Iterate to get all results and fill ArrayList Containers at "data" level
-                for (JsonElement sheetsResponse : elemArr) {
-
+                for (JsonElement sheetsResponse : elemArr)
+                {
                     PlayerGroup group = new PlayerGroup();
 
                     //Player Name Fill Container
@@ -165,6 +151,10 @@ public class UserStatstics extends baseActivity {
                     JsonElement ibuPts = sheetsResponse.getAsJsonObject().get("gsx$ibupoint").getAsJsonObject().get("$t");
                     group.ibuPts = ibuPts.getAsFloat();
 
+                    //Tokens Submitted
+                    JsonElement tokensSubmitted = sheetsResponse.getAsJsonObject().get("gsx$totaltokenssubmitted").getAsJsonObject().get("$t");
+                    group.totalTokensSubmitted = tokensSubmitted.getAsFloat();
+
                     //add to master container
                     sortCont.add(group);
 
@@ -172,7 +162,9 @@ public class UserStatstics extends baseActivity {
                 //extract user info out of container
                 final PlayerStats user = new PlayerStats();
                 for (int i = 0; i < sortCont.size();i++){
-                    if(sortCont.get(i).player.equals(userName.toUpperCase())){
+                    if(sortCont.get(i).player.equals(userName.toUpperCase()))
+                    {
+                        user.setHeader("STATS");
                         user.setDrinks(sortCont.get(i).drinks);
                         user.setOz(sortCont.get(i).oz);
                         user.setAbv(sortCont.get(i).abv);
@@ -181,240 +173,266 @@ public class UserStatstics extends baseActivity {
                         user.setOzTokens(sortCont.get(i).ozPts);
                         user.setAbvTokens(sortCont.get(i).abvPts);
                         user.setIbuTokens(sortCont.get(i).ibuPts);
+                        user.setTokenSubmitted(sortCont.get(i).totalTokensSubmitted);
                     }
                 }
 
-                //set values to other players for rankings
-                final ArrayList<PlayerStats> players = new ArrayList<>();
-                for (int i = 0; i < sortCont.size(); i++){
-                    System.out.println(sortCont.get(i).player);
-                    if(!sortCont.get(i).player.equals("")){
-                        PlayerStats player = new PlayerStats();
-                        player.setName(sortCont.get(i).player);
-                        player.setDrinks(sortCont.get(i).drinks);
-                        player.setOz(sortCont.get(i).oz);
-                        player.setAbv(sortCont.get(i).abv);
-                        player.setIbu(sortCont.get(i).ibu);
-                        player.setDrinkTokens(sortCont.get(i).drinkPts);
-                        player.setOzTokens(sortCont.get(i).ozPts);
-                        player.setAbvTokens(sortCont.get(i).abvPts);
-                        player.setIbuTokens(sortCont.get(i).ibuPts);
-                        players.add(player);
-                    }
-                }
-
-                final int nPlayers = players.size();
-
-                //Sort players based on drinks and set Rank
-                Comparator<PlayerStats> drinkComp = new Comparator<PlayerStats>() {
+                runOnUiThread(new Runnable()
+                {
                     @Override
-                    public int compare(PlayerStats drink1, PlayerStats drink2) {
-                        return Double.compare(drink1.getDrinks(), drink2.getDrinks());
-                    }
-                };
-                Collections.sort(players, drinkComp);
-                Collections.reverse(players);
-                for (int i = 0; i < players.size(); i++){
-                    if(userName.toUpperCase().equals(players.get(i).getName())){
-                        user.setDrinkRank(i+1);
-                        break;
-                    }
-                }
+                    public void run()
+                    {
+                        //set values to other players for rankings
+                        ArrayList<PlayerStats> players = new ArrayList<>();
+                        for (int i = 0; i < sortCont.size(); i++)
+                        {
+                            if(!sortCont.get(i).player.equals("")){
+                                PlayerStats player = new PlayerStats();
+                                player.setHeader("STATS");
+                                player.setName(sortCont.get(i).player);
+                                player.setDrinks(sortCont.get(i).drinks);
+                                player.setOz(sortCont.get(i).oz);
+                                player.setAbv(sortCont.get(i).abv);
+                                player.setIbu(sortCont.get(i).ibu);
+                                player.setDrinkTokens(sortCont.get(i).drinkPts);
+                                player.setOzTokens(sortCont.get(i).ozPts);
+                                player.setAbvTokens(sortCont.get(i).abvPts);
+                                player.setIbuTokens(sortCont.get(i).ibuPts);
+                                player.setTokenSubmitted(sortCont.get(i).totalTokensSubmitted);
+                                players.add(player);
+                            }
+                        }
 
-                //Sort players based on ounces and set Rank
-                Comparator<PlayerStats> ozComp = new Comparator<PlayerStats>() {
-                    @Override
-                    public int compare(PlayerStats ounce1, PlayerStats ounce2) {
-                        return Double.compare(ounce1.getOz(), ounce2.getOz());
-                    }
-                };
-                Collections.sort(players, ozComp);
-                Collections.reverse(players);
-                for (int i = 0; i < players.size(); i++){
-                    if(userName.toUpperCase().equals(players.get(i).getName())){
-                        user.setOzRank(i+1);
-                        break;
-                    }
-                }
+                        for (int i = 0; i < players.size(); i++)
+                        {
+                            players.get(i).setPlayers(players);
+                        }
 
-                //Sort players based on abv and set Rank
-                Comparator<PlayerStats> abvComp = new Comparator<PlayerStats>() {
-                    @Override
-                    public int compare(PlayerStats abv1, PlayerStats abv2) {
-                        return Double.compare(abv1.getAbv(), abv2.getAbv());
-                    }
-                };
-                Collections.sort(players, abvComp);
-                Collections.reverse(players);
-                for (int i = 0; i < players.size(); i++){
-                    if(userName.toUpperCase().equals(players.get(i).getName())){
-                        user.setAbvRank(i+1);
-                        break;
-                    }
-                }
+                        user.setPlayers(players);
+                        user.setName(userName);
+                        System.out.println(user.getDrinkRank());
 
-                //Sort players based on ibu and set Rank
-                Comparator<PlayerStats> ibuComp = new Comparator<PlayerStats>() {
-                    @Override
-                    public int compare(PlayerStats ibu1, PlayerStats ibu2) {
-                        return Double.compare(ibu1.getIbu(), ibu2.getIbu());
-                    }
-                };
-                Collections.sort(players, ibuComp);
-                Collections.reverse(players);
-                for (int i = 0; i < players.size(); i++){
-                    if(userName.toUpperCase().equals(players.get(i).getName())){
-                        user.setIbuRank(i+1);
-                        break;
-                    }
-                }
+                        ArrayList<String> statNames = new ArrayList<>();
+                        initializeStatNames(statNames);
 
+                        ArrayList<Object> statValues = new ArrayList<>();
+                        initializeStatValues(statValues, user);
 
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
+                        ArrayList<Object> rankValues = new ArrayList<>();
+                        initializeRankList(rankValues, user);
 
-                        //Set Header
-                        header.setText("TOTAL POINTS : " + String.valueOf((int)(user.getDrinkPts() + user.getOzPts() + user.getAbvPts() + user.getIbuPts())));
+                        ArrayList<StatLineItem> statLineItems = new ArrayList<>();
+                        initializeStatLineItems(statLineItems,statNames,statValues,rankValues);
 
-                        //add values to chart in groups
-                        ArrayList<BarEntry> entries = new ArrayList<>();
-                        entries.add(new BarEntry(1f , user.getDrinkPts()));
-                        entries.add(new BarEntry(3f , user.getOzPts()));
-                        entries.add(new BarEntry(5f , user.getAbvPts()));
-                        entries.add(new BarEntry(7f , user.getIbuPts()));
+                        LinearLayout statLinearLayout = (LinearLayout) findViewById(R.id.userStatsLayout);
+                        LinearLayout.LayoutParams statLinearLayoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1);
 
-                        //create dataSet
-                        BarDataSet dataSet = new BarDataSet(entries,"points");
-                        dataSet.setColor(ContextCompat.getColor(getApplicationContext(),R.color.Goldenrod));
+                        for (int i = 0; i < statLineItems.size(); i++)
+                        {
+                            statLinearLayout.addView(statLineItems.get(i).mainLinearLayout,statLinearLayoutParams);
+                        }
 
-                        //setup Leader Board
-                        BarChart userPoints = new BarChart(getApplicationContext());
+                        float numberOfTokens = TokenPurse.count(TokenPurse.class,null,null);
+                        printTokenArc(numberOfTokens);
 
-
-                        //define chart data
-                        BarData data = new BarData(dataSet);
-                        data.setValueFormatter(new MyValueFormatter());
-                        data.setValueTextColor(ContextCompat.getColor(getApplicationContext(), R.color.SlateGray));
-                        data.setBarWidth(0.75f); // set the width of each bar
-                        data.setValueTextSize(25f);
-
-                        userPoints.setData(data);
-                        userPoints.setFitBars(true);
-                        userPoints.animateY(3000);
-                        userPoints.setDescription("");
-                        userPoints.getAxisRight().setEnabled(false);
-                        userPoints.setViewPortOffsets(0,0,0,0);
-                        userPoints.invalidate(); // refresh
-
-
-                        XAxis xAxis = userPoints.getXAxis();
-                        xAxis.setDrawAxisLine(false);
-                        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-                        xAxis.setDrawGridLines(false);
-                        xAxis.setDrawLabels(false);
-                        xAxis.setAxisMinValue(0f);
-                        xAxis.setAxisMaxValue(8f);
-
-
-                        YAxis yAxis = userPoints.getAxisLeft();
-                        yAxis.setDrawAxisLine(false);
-                        yAxis.setDrawLabels(false);
-                        yAxis.setAxisMinValue(0f);
-                        yAxis.setAxisMaxValue(11.9f);
-                        yAxis.setGridColor(ContextCompat.getColor(getApplicationContext(), R.color.DarkGoldenrod));
-
-                        //define layout parameters for chart
-                        LinearLayout.LayoutParams pntChrtParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-
-                        //define layout for chart to be applied and apply
-                        LinearLayout pointsChart = (LinearLayout) findViewById(R.id.pointsChart);
-                        pointsChart.addView(userPoints,pntChrtParams);
-
-
-                        //populate stats grid;
-                        //TOTALS
-                        r1c2.setText(String.valueOf((int)user.getDrinks()));
-                        r2c2.setText(String.valueOf(user.getOz()));
-                        r3c2.setText(String.valueOf(user.getAbv()));
-                        r4c2.setText(String.valueOf(user.getIbu()));
-
-                        //TO NEXT POINT
-                        r1c3.setText(String.valueOf((int)user.getNextDrinkPt()));
-                        r2c3.setText(String.valueOf(user.getNextOzPt()));
-                        r3c3.setText(String.valueOf(user.getNextAbvPt()));
-                        r4c3.setText(String.valueOf(user.getNextIbuPt()));
-
-                        //RANKINGS
-                        r1c4.setText(String.valueOf(user.getDrinkRank())+ " of " + nPlayers);
-                        r2c4.setText(String.valueOf(user.getOzRank())+ " of " + nPlayers);
-                        r3c4.setText(String.valueOf(user.getAbvRank())+ " of " + nPlayers);
-                        r4c4.setText(String.valueOf(user.getIbuRank())+ " of " + nPlayers);
-
-                        System.out.println(user.getAbv()%1.5);
-                        System.out.println(1.5-user.getAbv()%1.5);
-                        System.out.println((1.5-user.getAbv()%1.5)*10);
-                        System.out.println(Math.round((1.5-user.getAbv()%1.5)*10));
-                        System.out.println((float)Math.round((1.5-user.getAbv()%1.5)*10)/10);
-
-
-
+                        //System.out.print("print this first to make work for some reason" + players.get(0).getDrinkRank());
+                        for (int i = 0; i < rankValues.size(); i++)
+                        {
+                            System.out.println(statNames.get(i) + " = " + statValues.get(i) + " rank = " + rankValues.get(i));
+                        }
 
                     }
                 });
-
-
             }
-
-
         });
+    }
 
+    private class StatLineItem
+    {
+        TextView statName;
+        TextView statValue;
+        TextView rank;
+        LinearLayout mainLinearLayout;
 
     }
 
-    private void initializeVariables() {
-        dPtsTV = (TextView) findViewById(R.id.dpts);
-        ozPtsTV = (TextView) findViewById(R.id.ozPts);
-        abvPtsTV = (TextView) findViewById(R.id.abvPts);
-        ibuPtsTV = (TextView) findViewById(R.id.ibuPts);
-        header = (TextView) findViewById(R.id.totalPointsHeader);
-        statsGrid = (GridLayout) findViewById(R.id.statGrid);
-        header1 = (TextView) findViewById(R.id.header1);
-        header2 = (TextView) findViewById(R.id.header2);
-        header3 = (TextView) findViewById(R.id.header3);
-        header4 = (TextView) findViewById(R.id.header4);
-        r1c1 = (TextView) findViewById(R.id.r1c1);
-        r1c2 = (TextView) findViewById(R.id.r1c2);
-        r1c3 = (TextView) findViewById(R.id.r1c3);
-        r1c4 = (TextView) findViewById(R.id.r1c4);
-        r2c1 = (TextView) findViewById(R.id.r2c1);
-        r2c2 = (TextView) findViewById(R.id.r2c2);
-        r2c3 = (TextView) findViewById(R.id.r2c3);
-        r2c4 = (TextView) findViewById(R.id.r2c4);
-        r3c1 = (TextView) findViewById(R.id.r3c1);
-        r3c2 = (TextView) findViewById(R.id.r3c2);
-        r3c3 = (TextView) findViewById(R.id.r3c3);
-        r3c4 = (TextView) findViewById(R.id.r3c4);
-        r4c1 = (TextView) findViewById(R.id.r4c1);
-        r4c2 = (TextView) findViewById(R.id.r4c2);
-        r4c3 = (TextView) findViewById(R.id.r4c3);
-        r4c4 = (TextView) findViewById(R.id.r4c4);
+    private void initializeStatNames (ArrayList<String> statNameList)
+    {
+        statNameList.add("STAT");
 
-        header.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.Purple));
+        statNameList.add("TOTAL POINTS");
+        statNameList.add("TOTAL DRINKS");
+        statNameList.add("TOTAL OZ");
+        statNameList.add("TOTAL ABV OZ");
+        statNameList.add("TOTAL IBU");
 
-        dPtsTV.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
-        ozPtsTV.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
-        abvPtsTV.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
-        ibuPtsTV.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
-        header.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
-        header2.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
-        header3.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
-        header4.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
-        r1c1.setTypeface(EasyFonts.ostrichRegular(getApplicationContext()));
-        r2c1.setTypeface(EasyFonts.ostrichRegular(getApplicationContext()));
-        r3c1.setTypeface(EasyFonts.ostrichRegular(getApplicationContext()));
-        r4c1.setTypeface(EasyFonts.ostrichRegular(getApplicationContext()));
+        statNameList.add("RPPD");
+        statNameList.add("PPT");
+        statNameList.add("OPPD");
 
+        statNameList.add("TOKENS SUBMITTED");
+
+        statNameList.add("ABV/DRINK");
+        statNameList.add("IBU/DRINK");
+        statNameList.add("OZ/DRINK");
+    }
+
+    private void initializeStatValues (ArrayList<Object> statValues, PlayerStats playerStats)
+    {
+        statValues.add("VALUE");
+
+        statValues.add(playerStats.getTotalPoints());
+        statValues.add(playerStats.getDrinks());
+        statValues.add(playerStats.getOz());
+        statValues.add(playerStats.getAbv());
+        statValues.add(playerStats.getIbu());
+
+        statValues.add(playerStats.getRPPD());
+        statValues.add(playerStats.getPPT());
+        statValues.add(playerStats.getOPPD());
+
+        statValues.add(playerStats.getTokenSubmitted());
+
+        statValues.add(playerStats.getAvgABV());
+        statValues.add(playerStats.getIbuPerDrink());
+        statValues.add(playerStats.getOzPerDrink());
+    }
+
+    private void initializeRankList (ArrayList<Object> rank, PlayerStats playerStats)
+    {
+        rank.add("RANK");
+
+        rank.add(playerStats.getTotalPointsRank());
+        rank.add(playerStats.getDrinkRank());
+        rank.add(playerStats.getOzRank());
+        rank.add(playerStats.getAbvRank());
+        rank.add(playerStats.getIbuRank());
+
+        rank.add(playerStats.getRPPD_rank());
+        rank.add(playerStats.getPPT_rank());
+        rank.add(playerStats.getOPPD_rank());
+
+        rank.add(playerStats.getTokensSubmittedRank());
+
+        rank.add(playerStats.getAbvPerDrinkRank());
+        rank.add(playerStats.getIbuPerDrinkRank());
+        rank.add(playerStats.getOzPerDrinkRank());
+    }
+
+    private void initializeStatLineItems (ArrayList<StatLineItem> statLineItemList ,ArrayList<String> statNames, ArrayList<Object> statValues, ArrayList<Object> rankValues)
+    {
+        for (int i = 0; i < statNames.size(); i++)
+        {
+            //SET FORMATTERS
+            DecimalFormat decimalFormatter = new DecimalFormat("#0.00");
+
+            statLineItemList.add(new StatLineItem());
+            statLineItemList.get(i).statName = new TextView(getApplicationContext());
+            statLineItemList.get(i).statValue = new TextView(getApplicationContext());
+            statLineItemList.get(i).rank = new TextView(getApplicationContext());
+
+            statLineItemList.get(i).statName.setText(statNames.get(i));
+            if(statValues.get(i).getClass().equals(Float.class))
+            {
+                statLineItemList.get(i).statValue.setText(String.valueOf(decimalFormatter.format(statValues.get(i))));
+            }
+            else
+            {
+                statLineItemList.get(i).statValue.setText(String.valueOf(statValues.get(i)));
+            }
+
+            statLineItemList.get(i).rank.setText(String.valueOf(rankValues.get(i)));
+
+            statLineItemList.get(i).statName.setTypeface(EasyFonts.ostrichRegular(getApplicationContext()));
+            statLineItemList.get(i).statValue.setTypeface(EasyFonts.robotoRegular(getApplicationContext()));
+            statLineItemList.get(i).rank.setTypeface(EasyFonts.robotoRegular(getApplicationContext()));
+
+            statLineItemList.get(i).statName.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.NavajoWhite));
+            statLineItemList.get(i).statValue.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.WhiteSmoke));
+            statLineItemList.get(i).rank.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.Goldenrod));
+
+            if (i == 0){
+                statLineItemList.get(i).statName.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+                statLineItemList.get(i).statValue.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+                statLineItemList.get(i).rank.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+
+                statLineItemList.get(i).statName.setTextSize(20);
+                statLineItemList.get(i).statValue.setTextSize(20);
+                statLineItemList.get(i).rank.setTextSize(20);
+
+                statLineItemList.get(i).statName.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.WhiteSmoke));
+                statLineItemList.get(i).statValue.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.WhiteSmoke));
+                statLineItemList.get(i).rank.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.WhiteSmoke));
+            }
+
+            statLineItemList.get(i).statName.setGravity(Gravity.CENTER);
+            statLineItemList.get(i).statValue.setGravity(Gravity.CENTER);
+            statLineItemList.get(i).rank.setGravity(Gravity.CENTER);
+
+            statLineItemList.get(i).mainLinearLayout = new LinearLayout(getApplicationContext());
+            LinearLayout.LayoutParams mainLayoutParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1);
+
+            statLineItemList.get(i).mainLinearLayout.addView(statLineItemList.get(i).statName,mainLayoutParams);
+            statLineItemList.get(i).mainLinearLayout.addView(statLineItemList.get(i).statValue,mainLayoutParams);
+            statLineItemList.get(i).mainLinearLayout.addView(statLineItemList.get(i).rank,mainLayoutParams);
+        }
+    }
+
+    private void printTokenArc(float tokensCollected)
+    {
+        DecoView tokenArc = (DecoView) findViewById(R.id.tokensCollectedChart);
+        final TextView tokensCollectedPercentage = (TextView) findViewById(R.id.tokensCollectedPercentage);
+        tokensCollectedPercentage.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        int tokenSeriesIndex;
+
+        FetchSettings settings = FetchSettings.findById(FetchSettings.class, 1);
+        float maxTokens = settings.nTokens;
+
+        // CREATE BACKGROUND TRACK
+        tokenArc.addSeries(new SeriesItem.Builder(ContextCompat.getColor(getApplicationContext(),R.color.SlateGray))
+                .setRange(0, maxTokens, maxTokens)
+                .setInitialVisibility(false)
+                .setLineWidth(32f)
+                .build());
+
+        //CREATE DATA SERIES TRACK
+        final SeriesItem tokenSeries;
+
+        tokenSeries = new SeriesItem.Builder(ContextCompat.getColor(getApplicationContext(),R.color.DodgerBlue))
+                .setRange(0, maxTokens,0)
+                .setLineWidth(32f)
+                .setSpinDuration(2000)
+                .setInterpolator(new AccelerateDecelerateInterpolator())
+                .setCapRounded(false)
+                .build();
+
+        tokenSeriesIndex = tokenArc.addSeries(tokenSeries);
+
+        tokenArc.addEvent(new DecoEvent.Builder(DecoEvent.EventType.EVENT_SHOW, true)
+                .setDelay(0)
+                .setDuration(1500)
+                .build());
+
+        tokenArc.addEvent(new DecoEvent.Builder(tokensCollected).setIndex(tokenSeriesIndex).setDelay(2500).build());
+
+        final String format = "%.0f%%";
+
+        tokenSeries.addArcSeriesItemListener(new SeriesItem.SeriesItemListener() {
+            @Override
+            public void onSeriesItemAnimationProgress(float percentComplete, float currentPosition) {
+                if (format.contains("%%")) {
+                    float percentFilled = ((currentPosition - tokenSeries.getMinValue()) / (tokenSeries.getMaxValue() - tokenSeries.getMinValue()));
+                    tokensCollectedPercentage.setText(String.format(format, percentFilled * 100f)+ System.lineSeparator() + "TOKENS"+ System.lineSeparator() + "COLLECTED");
+                } else {
+                    tokensCollectedPercentage.setText(String.format(format, currentPosition)+ System.lineSeparator() + "TOKENS"+ System.lineSeparator() + "COLLECTED");
+                }
+            }
+
+            @Override
+            public void onSeriesItemDisplayProgress(float percentComplete) {
+
+            }
+        });
 
     }
 }

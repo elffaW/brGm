@@ -1,6 +1,7 @@
 package mkawa.okhttp;
 
 
+import android.app.Activity;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
@@ -8,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.TextView;
 
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.BarChart;
@@ -19,18 +21,22 @@ import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.AxisValueFormatter;
+import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.renderer.PieChartRenderer;
 import com.github.mikephil.charting.utils.ColorTemplate;
+import com.github.mikephil.charting.utils.ViewPortHandler;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.vstechlab.easyfonts.EasyFonts;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -43,7 +49,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class LeaderBoard extends baseActivity {
+public class LeaderBoard extends Activity {
 
     protected static int pointSelection = 0;
     private ArrayList<PlayerStats> contestants = new ArrayList<>();
@@ -499,24 +505,32 @@ public class LeaderBoard extends baseActivity {
         //add values to chart in groups
         ArrayList<BarEntry> entries = new ArrayList<>();
         int maxFloat = 1;
+        TextView chartDescription = (TextView) findViewById(R.id.secondaryChartHeader);
+        chartDescription.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.WhiteSmoke));
+        chartDescription.setTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
+        chartDescription.setTextSize(20f);
 
         for (int i = 0; i < players.size(); i++) {
             switch(dataType){
                 case "drinks":
-                    entries.add(new BarEntry(i + 1, players.get(i).getPointPerDrink()));
+                    entries.add(new BarEntry(i + 1, players.get(i).getRPPD()));
                     maxFloat = maxFloat + 1;
+                    chartDescription.setText("PTS/DRINK");
                     break;
                 case "oz":
                     entries.add(new BarEntry(i + 1, players.get(i).getOzPerDrink()));
                     maxFloat = maxFloat + 1;
+                    chartDescription.setText("AVG OZ/DRINK");
                     break;
                 case "abv":
                     entries.add(new BarEntry(i + 1, players.get(i).getAvgABV()));
                     maxFloat = maxFloat + 1;
+                    chartDescription.setText("AVG ABV/DRINK");
                     break;
                 case "ibu":
                     entries.add(new BarEntry(i + 1, players.get(i).getIbuPerDrink()));
                     maxFloat = maxFloat + 1;
+                    chartDescription.setText("AVG IBU/DRINK");
                     break;
                 default:
                     entries.add(new BarEntry(0f,0f));
@@ -542,7 +556,7 @@ public class LeaderBoard extends baseActivity {
 
         //define chart data
         BarData data = new BarData(dataSet);
-        data.setValueFormatter(new MyValueFormatter());
+        data.setValueFormatter(new decimalValueFormatter());
         data.setValueTextColor(ContextCompat.getColor(getApplicationContext(), R.color.WhiteSmoke));
         data.setBarWidth(0.50f); // set the width of each bar
         data.setValueTextSize(10f);
@@ -550,10 +564,10 @@ public class LeaderBoard extends baseActivity {
         pointsLeaderBoard.setData(data);
         pointsLeaderBoard.setFitBars(false);
         pointsLeaderBoard.animateY(3000);
-        pointsLeaderBoard.setDescription("TOTAL POINTS");
+        pointsLeaderBoard.setDescription("");
         pointsLeaderBoard.setDescriptionColor(ContextCompat.getColor(getApplicationContext(), R.color.GhostWhite));
         pointsLeaderBoard.setDescriptionTypeface(EasyFonts.ostrichBlack(getApplicationContext()));
-        pointsLeaderBoard.setDescriptionPosition(maxFloat/2,dataSet.getYMax());
+        //pointsLeaderBoard.setDescriptionPosition(maxFloat/2,dataSet.getYMax());
         pointsLeaderBoard.setDescriptionTextSize(25f);
         pointsLeaderBoard.getXAxis().setDrawGridLines(false);
         pointsLeaderBoard.getAxisRight().setEnabled(false);
@@ -618,6 +632,14 @@ public class LeaderBoard extends baseActivity {
         //primary.removeAllViews();
         //primary.addView(pointsLeaderBoard,primaryChartParams);
         pointsLeaderBoard.invalidate(); // refresh
+    }
+
+    private class decimalValueFormatter implements ValueFormatter {
+        @Override
+        public String getFormattedValue(float value, Entry entry, int dataSetIndex, ViewPortHandler viewPortHandler){
+            DecimalFormat decimalFormatter = new DecimalFormat("#0.00");
+            return decimalFormatter.format(value);
+        }
     }
 }
 

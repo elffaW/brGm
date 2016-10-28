@@ -25,6 +25,14 @@ public class TokenGraph {
 
     private float tokenPurseVal;
     private float baseVal;
+    private float bv1;
+    private float bv2;
+    private float bv3;
+    private float bv4;
+    private float bv5;
+
+    private float maxStockVal;
+
     private Boolean haveToken;
 
     public TokenGraph() {
@@ -40,8 +48,14 @@ public class TokenGraph {
                       float val5,
                       float tokenPurseVal,
                       float baseVal,
+                      float bv1,
+                      float bv2,
+                      float bv3,
+                      float bv4,
+                      float bv5,
                       boolean haveToken,
-                      int tokenTitle) {
+                      int tokenTitle,
+                      float maxStockVal) {
         this.tokenID = tokenID;
         this.tokenName = tokenName;
         this.curVal = curVal;
@@ -52,7 +66,13 @@ public class TokenGraph {
         this.val5 = val5;
         this.tokenPurseVal = tokenPurseVal;
         this.baseVal = baseVal;
+        this.bv1 = bv1;
+        this.bv2 = bv2;
+        this.bv3 = bv3;
+        this.bv4 = bv4;
+        this.bv5 = bv5;
         this.haveToken = haveToken;
+        this.maxStockVal = maxStockVal;
     }
 
     // GETTERS
@@ -96,8 +116,32 @@ public class TokenGraph {
         return baseVal;
     }
 
+    public float getBv1(){
+        return bv1;
+    }
+
+    public float getBv2(){
+        return bv2;
+    }
+
+    public float getBv3(){
+        return bv3;
+    }
+
+    public float getBv4(){
+        return bv4;
+    }
+
+    public float getBv5(){
+        return bv5;
+    }
+
     public Boolean getHaveToken(){
         return haveToken;
+    }
+
+    public float getMaxStockVal(){
+        return maxStockVal;
     }
 
     //SETTERS
@@ -141,8 +185,32 @@ public class TokenGraph {
         this.baseVal = baseVal;
     }
 
+    public void setBv1(float bv1){
+        this.bv1 = bv1;
+    }
+
+    public void setBv2(float bv2){
+        this.bv2 = bv2;
+    }
+
+    public void setBv3(float bv3){
+        this.bv3 = bv3;
+    }
+
+    public void setBv4(float bv4){
+        this.bv4 = bv4;
+    }
+
+    public void setBv5(float bv5){
+        this.bv5 = bv5;
+    }
+
     public void setHaveToken(Boolean haveToken){
         this.haveToken = haveToken;
+    }
+
+    public void setMaxStockVal(float maxStockVal){
+        this.maxStockVal = maxStockVal;
     }
 
 

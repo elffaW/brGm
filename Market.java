@@ -2,6 +2,7 @@ package mkawa.okhttp;
 
 
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -26,12 +27,14 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class Market extends baseActivity implements TokenGraphAdapter.ClickListener {
+public class Market extends Activity implements TokenGraphAdapter.ClickListener {
 
     private List<TokenGraph> tokenGraphList = new ArrayList<>();
     private TokenGraphAdapter TGadapter;
     final long numberOfTokens = TokenPurse.count(TokenPurse.class,null,null);
     final String query = "https://spreadsheets.google.com/feeds/list/1K9xB3ZivGYa5S-1SdyEWNUUNN8tu1-9_NH-xyA9if-8/3/public/full?alt=json";
+    float maxStockVal;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +57,10 @@ public class Market extends baseActivity implements TokenGraphAdapter.ClickListe
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         recyclerView.setAdapter(TGadapter);
         recyclerView.setHasFixedSize(true);
+
+
+        FetchSettings settings = FetchSettings.findById(FetchSettings.class,1);
+        maxStockVal = settings.maxStockVal;
 
     } //END ON CREATE
 
@@ -134,6 +141,26 @@ public class Market extends baseActivity implements TokenGraphAdapter.ClickListe
                     JsonElement baseValField = sheetsResponse.getAsJsonObject().get("gsx$baseval").getAsJsonObject().get("$t");
                     group.baseVal = baseValField.getAsFloat();
 
+                    //bv1 Container
+                    JsonElement bv1Field = sheetsResponse.getAsJsonObject().get("gsx$basevalprev1").getAsJsonObject().get("$t");
+                    group.bv1 = bv1Field.getAsFloat();
+
+                    //bv2 Container
+                    JsonElement bv2Field = sheetsResponse.getAsJsonObject().get("gsx$basevalprev2").getAsJsonObject().get("$t");
+                    group.bv2 = bv2Field.getAsFloat();
+
+                    //bv3 Container
+                    JsonElement bv3Field = sheetsResponse.getAsJsonObject().get("gsx$basevalprev3").getAsJsonObject().get("$t");
+                    group.bv3 = bv3Field.getAsFloat();
+
+                    //bv4 Container
+                    JsonElement bv4Field = sheetsResponse.getAsJsonObject().get("gsx$basevalprev4").getAsJsonObject().get("$t");
+                    group.bv4 = bv4Field.getAsFloat();
+
+                    //bv5 Container
+                    JsonElement bv5Field = sheetsResponse.getAsJsonObject().get("gsx$basevalprev5").getAsJsonObject().get("$t");
+                    group.bv5 = bv5Field.getAsFloat();
+
 
                     //Add to master container
                     sortCont.add(group);
@@ -177,6 +204,12 @@ public class Market extends baseActivity implements TokenGraphAdapter.ClickListe
             tokenGraph.setVal4(infoContainer.get(i).val4);
             tokenGraph.setVal5(infoContainer.get(i).val5);
             tokenGraph.setBaseVal(infoContainer.get(i).baseVal);
+            tokenGraph.setBv1(infoContainer.get(i).bv1);
+            tokenGraph.setBv2(infoContainer.get(i).bv2);
+            tokenGraph.setBv3(infoContainer.get(i).bv3);
+            tokenGraph.setBv4(infoContainer.get(i).bv4);
+            tokenGraph.setBv5(infoContainer.get(i).bv5);
+            tokenGraph.setMaxStockVal(maxStockVal);
             tokenGraph.setTokenPurseVal(infoContainer.get(i).purseVal);
             for (int k = 0; k < numberOfTokens; k++){
                 if(infoContainer.get(i).type.equals(token_list.get(k).tokenName)){
@@ -204,6 +237,7 @@ public class Market extends baseActivity implements TokenGraphAdapter.ClickListe
         selectionSend.putExtra("tokenType",typeSend);
         selectionSend.putExtra("curVal",curValSend);
         startActivity(selectionSend);
+        finish();
 
     }
 
@@ -219,7 +253,17 @@ public class Market extends baseActivity implements TokenGraphAdapter.ClickListe
         public float val4;
         public float val5;
         public float baseVal;
+        public float bv1;
+        public float bv2;
+        public float bv3;
+        public float bv4;
+        public float bv5;
         public float purseVal;
+        public float maxStockVal;
+        public float lowRecVal;
+        public float highRecVal;
+        public float curLowVal;
+        public float curHighVal;
     }
 
 

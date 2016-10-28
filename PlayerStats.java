@@ -1,14 +1,18 @@
 package mkawa.okhttp;
 
-/**
- * Created by mattkawahara on 8/24/16.
- */
+import java.lang.reflect.Array;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+
 public class PlayerStats {
 
     //grab settings
 
 
     private String name;
+    private String header;
     private float drinks = 0;
     private float oz = 0;
     private float abv = 0;
@@ -35,6 +39,8 @@ public class PlayerStats {
     private float ibuPerDrink = 0;
     private float pointPerDrink = 0;
     private float avgABV = 0;
+    private float tokenSubmitted = 0;
+    private ArrayList<PlayerStats> players;
 
 
 
@@ -71,19 +77,6 @@ public class PlayerStats {
     }
     public float getIbuTokens(){
         return ibuTokens;
-    }
-
-    public int getDrinkRank(){
-        return drinkRank;
-    }
-    public int getOzRank(){
-        return ozRank;
-    }
-    public int getAbvRank(){
-        return abvRank;
-    }
-    public int getIbuRank(){
-        return ibuRank;
     }
 
     public float getLevel(){
@@ -141,21 +134,89 @@ public class PlayerStats {
         return pctComp(getIbu(),settings.ibuLevel);
     }
 
-    public float getOzPerDrink(){
-        return getOz()/getDrinks();
+    public float getOzPerDrink()
+    {
+        if (getDrinks() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return getOz()/getDrinks();
+        }
     }
-    public float getAbvPerDrink(){
-        return getAbv()/getDrinks();
+    public float getAbvPerDrink()
+    {
+        if (getDrinks() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return getAbv()/getDrinks();
+        }
     }
     public float getIbuPerDrink(){
-        return getIbu()/getDrinks();
+        if (getDrinks() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return getIbu()/getDrinks();
+        }
     }
     public float getAvgABV() {
-        return 100*getAbv()/getOz();
+        if (getOz() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return 100*getAbv()/getOz();
+        }
+
     }
-    public float getPointPerDrink(){
-        return (getDrinkPts()+getOzPts()+getAbvPts()+getIbuPts())/getDrinks();
+    public float getRPPD(){
+        if (getDrinks() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return getRawPoints()/getDrinks();
+        }
     }
+    public float getTotalPoints(){
+        return (getDrinkPts()+getOzPts()+getAbvPts()+getIbuPts());
+    }
+    public float getTokenPoints(){
+        return getDrinkTokens()+getOzTokens()+getAbvTokens()+getIbuTokens();
+    }
+    public float getRawPoints(){
+        return getTotalPoints()-getTokenPoints();
+    }
+    public float getPPT(){
+        if (getTokenSubmitted() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return getTokenPoints()/getTokenSubmitted();
+        }
+    }
+    public float getOPPD(){
+        if (getDrinks() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return getTotalPoints()/getDrinks();
+        }
+    }
+
 
     //SETTERS
     public void setName(String name){
@@ -241,7 +302,318 @@ public class PlayerStats {
         return pct;
     }
 
+    public float getTokenSubmitted() {
+        return tokenSubmitted;
+    }
+
+    public void setTokenSubmitted(float tokenSubmitted) {
+        this.tokenSubmitted = tokenSubmitted;
+    }
+
+    public String getHeader() {
+        return header;
+    }
+
+    public void setHeader(String header) {
+        this.header = header;
+    }
+
+    public void setPlayers(ArrayList<PlayerStats> players) {
+        this.players = players;
+    }
+    public ArrayList<PlayerStats> getPlayers() {
+        return players;
+    }
+
+    public int getTotalPointsRank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getTotalPoints(), b.getTotalPoints());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getDrinkRank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getDrinks(), b.getDrinks());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getOzRank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getOz(), b.getOz());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getAbvRank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getAbv(), b.getAbv());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getIbuRank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getIbu(), b.getIbu());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getRPPD_rank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getRPPD(), b.getRPPD());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getPPT_rank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getPPT(), b.getPPT());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getOPPD_rank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getOPPD(), b.getOPPD());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getTokensSubmittedRank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(b.getTokenSubmitted(), a.getTokenSubmitted());
+            }
+        };
+        Collections.sort(players, comparator);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getAbvPerDrinkRank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getAvgABV(), b.getAvgABV());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getIbuPerDrinkRank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getIbuPerDrink(), b.getIbuPerDrink());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
+    public int getOzPerDrinkRank()
+    {
+        int rank = 99;
+        Comparator<PlayerStats> comparator = new Comparator<PlayerStats>()
+        {
+            @Override
+            public int compare(PlayerStats a, PlayerStats b)
+            {
+                return Float.compare(a.getOzPerDrink(), b.getOzPerDrink());
+            }
+        };
+        Collections.sort(players, comparator);
+        Collections.reverse(players);
+        for (int i = 0; i < players.size(); i++)
+        {
+            if(name.toUpperCase().equals(players.get(i).getName()))
+            {
+                rank = i +1;
+                break;
+            }
+        }
+        return rank;
+    }
+
 }
+
 
 
 

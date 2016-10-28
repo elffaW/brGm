@@ -1,6 +1,7 @@
 package mkawa.okhttp;
 
 
+    import android.app.Activity;
     import android.content.Context;
     import android.content.DialogInterface;
     import android.content.Intent;
@@ -36,6 +37,7 @@ package mkawa.okhttp;
     import com.github.mikephil.charting.data.BarEntry;
     import com.github.mikephil.charting.formatter.AxisValueFormatter;
     import com.github.mikephil.charting.utils.ColorTemplate;
+    import com.google.api.client.repackaged.org.apache.commons.codec.binary.StringUtils;
     import com.google.gson.JsonArray;
     import com.google.gson.JsonElement;
     import com.google.gson.JsonParser;
@@ -57,7 +59,7 @@ package mkawa.okhttp;
     import java.util.NoSuchElementException;
 
 
-public class contactActivity extends baseActivity {
+public class contactActivity extends Activity {
 
     public static final MediaType FORM_DATA_TYPE
             = MediaType.parse("application/x-www-form-urlencoded; charset=utf-8");
@@ -157,13 +159,21 @@ public class contactActivity extends baseActivity {
                 @Override
                 public void onClick(View v) {
 
-                    //Make sure all the fields are filled with values
+                    //MAKE SURE ALL FIELDS ARE FILLED WITH VALUES
                     if (TextUtils.isEmpty(nameEditText.getText().toString()) ||
                             TextUtils.isEmpty(drinkEditText.getText().toString()) ||
                             TextUtils.isEmpty(abvEditText.getText().toString()) ||
                             TextUtils.isEmpty(ibuEditText.getText().toString()) ||
-                            TextUtils.isEmpty(ozEditText.getText().toString())) {
+                            TextUtils.isEmpty(ozEditText.getText().toString()))
+                    {
                         Toast.makeText(context, "All fields are mandatory.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    //CHECK IF NUMBER IS PROVIDED
+                    if (!TextUtils.isDigitsOnly(ozEditText.getText().toString()))
+                    {
+                        Toast.makeText(context, "OZ Must Be a Whole Number", Toast.LENGTH_LONG).show();
                         return;
                     }
 
@@ -425,6 +435,7 @@ public class contactActivity extends baseActivity {
                     @Override
                     public void run() {
 
+                        /*
                         //Add Values to chart
                         ArrayList<BarEntry> entries = new ArrayList<>();
                         entries.add(new BarEntry(1f, userStats.getIbuPct()));
@@ -515,6 +526,7 @@ public class contactActivity extends baseActivity {
                         if(userStatChart != null){
                             userStatChart.addView(userStats, pntChrtParams);
                         }
+                        */
 
 
 
@@ -624,8 +636,9 @@ public class contactActivity extends baseActivity {
         breweryEditText.setText("");
         styleEditText.setText("");
 
-        Intent allDone = new Intent(getApplicationContext(), LeaderBoard.class);
+        Intent allDone = new Intent(getApplicationContext(), Dashboard.class);
         startActivity(allDone);
+        finish();
     }
 }
 

@@ -14,6 +14,7 @@ public class PlayerGroup {
     public float ozPts;
     public float abvPts;
     public float ibuPts;
+    public float totalTokensSubmitted;
 
 
 
